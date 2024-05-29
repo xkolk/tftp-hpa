@@ -374,6 +374,7 @@ int main(int argc, char **argv)
     int spec_umask = 0;
     int c;
     int setrv;
+    int die;
     int waittime = 900;         /* Default time to wait for a connect */
     const char *user = "nobody";        /* Default user */
     char *p, *ep;
@@ -974,21 +975,30 @@ int main(int argc, char **argv)
         exit(EX_IOERR);
     }
 
-    /* Set up the supplementary group access list if possible */
-    /* /etc/group still need to be accessible at this point */
+    /* Set up the supplementary group access list if possible
+       /etc/group still need to be accessible at this point.
+       If we get EPERM, this is already a restricted process, e.g.
+       using user namespaces on Linux. */
+    setrv = -1;
+    die = 0;
 #ifdef HAVE_INITGROUPS
     setrv = initgroups(user, pw->pw_gid);
-    if (setrv) {
+    if (setrv && errno != EPERM) {
         syslog(LOG_ERR, "cannot set groups for user %s", user);
-        exit(EX_OSERR);
+	die = EX_OSERR;
     }
-#else
+#endif
 #ifdef HAVE_SETGROUPS
-    if (setgroups(0, NULL)) {
-        syslog(LOG_ERR, "cannot clear group list");
+    if (setrv) {
+	setrv = setgroups(0, NULL);
+	if (setrv && errno != EPERM) {
+	    syslog(LOG_ERR, "cannot clear group list");
+	    die = EX_OSERR;
+	}
     }
 #endif
-#endif
+    if (die)
+	exit(die);
 
     /* Chroot and drop privileges */
     if (secure) {
@@ -1000,11 +1010,15 @@ int main(int argc, char **argv)
         chdir("/");             /* Cygwin chroot() bug workaround */
 #endif
     }
+
 #ifdef HAVE_SETREGID
     setrv = setregid(pw->pw_gid, pw->pw_gid);
 #else
     setrv = setegid(pw->pw_gid) || setgid(pw->pw_gid);
 #endif
+    if (setrv && errno == EPERM) {
+	setrv = 0;		/* Already restricted */
+    }
 
 #ifdef HAVE_SETREUID
     setrv = setrv || setreuid(pw->pw_uid, pw->pw_uid);
@@ -1013,6 +1027,9 @@ int main(int argc, char **argv)
     setrv = setrv || setuid(pw->pw_uid) ||
         (geteuid() != pw->pw_uid && seteuid(pw->pw_uid));
 #endif
+    if (setrv && errno == EPERM) {
+	setrv = 0;		/* Already restricted */
+    }
 
     if (setrv) {
         syslog(LOG_ERR, "cannot drop privileges: %m");
