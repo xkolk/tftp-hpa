@@ -2,12 +2,13 @@ dnl
 dnl autoconf input file to generate MCONFIG
 dnl
 
-AC_PREREQ(2.61)
-AC_INIT(MCONFIG.in)
+AC_PREREQ([2.71])
+AC_INIT
+AC_CONFIG_SRCDIR([MCONFIG.in])
 AC_PREFIX_DEFAULT(/usr)
 
 AC_USE_SYSTEM_EXTENSIONS
-AC_ISC_POSIX
+AC_SEARCH_LIBS([strerror],[cposix])
 AC_PROG_CC
 
 AC_C_CONST
@@ -30,21 +31,15 @@ PA_ADD_CFLAGS(-Wsign-compare)
 PA_ADD_CFLAGS(-pipe)
 PA_ADD_CFLAGS(-fno-strict-aliasing)
 
-AC_HEADER_STDC
 AC_CHECK_HEADERS(inttypes.h)
 AC_CHECK_HEADERS(stdint.h)
 PA_CHECK_INTTYPES_H_SANE
 AC_CHECK_HEADERS(fcntl.h)
 AC_CHECK_HEADERS(grp.h)
 AC_CHECK_HEADERS(libgen.h)
-AC_CHECK_HEADERS(memory.h)
 AC_CHECK_HEADERS(setjmp.h)
-AC_CHECK_HEADERS(stddef.h)
-AC_CHECK_HEADERS(stdlib.h)
-AC_CHECK_HEADERS(string.h)
 AC_CHECK_HEADERS(strings.h)
 AC_CHECK_HEADERS(sysexits.h)
-AC_CHECK_HEADERS(time.h)
 AC_CHECK_HEADERS(unistd.h)
 AC_CHECK_HEADERS(sys/file.h)
 AC_CHECK_HEADERS(sys/filio.h)
@@ -53,7 +48,7 @@ AC_CHECK_HEADERS(sys/time.h)
 AC_CHECK_HEADERS(sys/types.h)
 AC_CHECK_HEADERS(arpa/inet.h)
 AC_CHECK_HEADERS(netdb.h)
-AC_HEADER_TIME
+
 dnl This is needed on some versions of FreeBSD...
 AC_CHECK_HEADERS(machine/param.h)
 AC_CHECK_HEADERS(sys/socket.h)
@@ -78,43 +73,9 @@ dnl <sys/socket.h> isn't among the list of standard headers that autoconf checks
 dnl but POSIX requires <sys/socket.h> for socklen_t to be defined.
 dnl
 AC_CHECK_TYPES(socklen_t,,,
-[
-#include <stdio.h>
+[AC_INCLUDES_DEFAULT
 #if HAVE_SYS_TYPES_H
 # include <sys/types.h>
-#endif
-#if HAVE_SYS_STAT_H
-# include <sys/stat.h>
-#endif
-#if STDC_HEADERS
-# include <stdlib.h>
-# include <stddef.h>
-#else
-# if HAVE_STDLIB_H
-#  include <stdlib.h>
-# endif
-#endif
-#if HAVE_STRING_H
-# if !STDC_HEADERS && HAVE_MEMORY_H
-#  include <memory.h>
-# endif
-# include <string.h>
-#endif
-#if HAVE_STRINGS_H
-# include <strings.h>
-#endif
-#if HAVE_INTTYPES_H
-# include <inttypes.h>
-#else
-# if HAVE_STDINT_H
-#  include <stdint.h>
-# endif
-#endif
-#if HAVE_UNISTD_H
-# include <unistd.h>
-#endif
-#ifdef HAVE_SYS_SOCKET_H
-# include <sys/socket.h>
 #endif
 ])
 
@@ -300,4 +261,5 @@ AC_PROG_INSTALL
 fi]
 
 AC_CONFIG_HEADERS(aconfig.h)
-AC_OUTPUT(MCONFIG)
+AC_CONFIG_FILES([MCONFIG])
+AC_OUTPUT

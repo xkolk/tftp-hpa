@@ -30,6 +30,10 @@
 /* Standard includes */
 
 #include <stdio.h>
+#include <time.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <signal.h>
 
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
@@ -37,21 +41,6 @@
 
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
-#endif
-
-#ifdef STDC_HEADERS
-#include <stdlib.h>
-#include <stddef.h>
-#else
-#ifdef HAVE_STDLIB_H
-#include <stdlib.h>
-#endif
-#endif
-
-#ifdef HAVE_MEMORY_H
-#ifndef STDC_HEADERS
-#include <memory.h>
-#endif
 #endif
 
 #ifdef HAVE_STRING_H
@@ -80,15 +69,8 @@
 #include <setjmp.h>
 #endif
 
-#ifdef TIME_WITH_SYS_TIME
+#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
-#include <time.h>
-#else
-#if HAVE_SYS_TIME_H
-#include <sys/time.h>
-#else
-#include <time.h>
-#endif
 #endif
 
 #ifdef HAVE_GRP_H
@@ -98,9 +80,6 @@
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
-
-#include <errno.h>
-#include <signal.h>
 
 #ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
