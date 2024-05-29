@@ -31,10 +31,13 @@
  * SUCH DAMAGE.
  */
 
-#ifndef RECVFILE_H
-#define RECVFILE_H
+#ifndef EXTERN_H
+#define EXTERN_H
+
+#include "config.h"
 
 void tftp_recvfile(int, const char *, const char *);
 void tftp_sendfile(int, const char *, const char *);
+extern sigjmp_buf toplevel;
 
 #endif

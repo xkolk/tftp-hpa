@@ -25,5 +25,3 @@ libxtra.a: $(LIBOBJS)
 	-rm -f libxtra.a
 	$(AR) libxtra.a $(LIBOBJS)
 	$(RANLIB) libxtra.a
-
-

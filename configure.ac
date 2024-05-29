@@ -89,6 +89,9 @@ AC_CHECK_FUNCS(setreuid)
 AC_CHECK_FUNCS(setregid)
 AC_CHECK_FUNCS(initgroups)
 AC_CHECK_FUNCS(setgroups)
+AC_CHECK_FUNCS(sigaction)
+AC_CHECK_FUNCS(bsd_signal)
+AC_CHECK_TYPES(sighandler_t)
 
 dnl Solaris 8 has [u]intmax_t but not strtoumax().  How utterly braindamaged.
 AC_CHECK_FUNCS(strtoumax)
@@ -120,7 +123,6 @@ OBJROOT=`pwd`
 XTRA=false
 PA_SEARCH_LIBS_AND_ADD(xmalloc, iberty)
 PA_SEARCH_LIBS_AND_ADD(xstrdup, iberty)
-PA_SEARCH_LIBS_AND_ADD(bsd_signal, bsd, bsdsignal)
 PA_SEARCH_LIBS_AND_ADD(getopt_long, getopt, getopt_long)
 PA_SEARCH_LIBS_AND_ADD(getaddrinfo, [nsl resolv])
 if $pa_add_getaddrinfo
