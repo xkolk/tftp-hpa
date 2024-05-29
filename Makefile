@@ -63,11 +63,11 @@ aconfig.h: MCONFIG
 # aconfig.h.in to second resolution, so on a filesystem with subsecond
 # resolution it can appear older than configure (which isn't truncated).
 # So make it an order-only prerequisite to avoid looping regenerating it.
-aconfig.h.in: configure.in aclocal.m4 | configure
+aconfig.h.in: configure.ac aclocal.m4 | configure
 	rm -f aconfig.h.in aconfig.h
 	autoheader
 
-configure: configure.in aclocal.m4
+configure: configure.ac aclocal.m4
 	rm -rf MCONFIG configure config.log aconfig.h *.cache
 	autoconf
 
@@ -76,4 +76,3 @@ version.h: version
 
 tftp.spec: tftp.spec.in version
 	sed -e "s/@@VERSION@@/`cat version`/g" < $< > $@ || rm -f $@
-
