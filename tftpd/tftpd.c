@@ -152,7 +152,7 @@ static void handle_exit(int sig)
 }
 
 /* Handle timeout signal or timeout event */
-void timer(int sig)
+static void timer(int sig)
 {
     (void)sig;                  /* Suppress unused warning */
     timeout <<= 1;
