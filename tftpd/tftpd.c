@@ -990,7 +990,9 @@ int main(int argc, char **argv)
 #endif
 #ifdef HAVE_INITGROUPS
     setrv = initgroups(user, pw->pw_gid);
-    if (setrv && errno != EPERM) {
+    if (!setrv) {
+	die = 0;
+    } else if (errno != EPERM) {
         syslog(LOG_ERR, "cannot set groups for user %s", user);
 	die = EX_OSERR;
     }
