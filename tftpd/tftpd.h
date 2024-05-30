@@ -23,4 +23,13 @@ char *tfstrdup(const char *);
 
 extern int verbosity;
 
+struct formats {
+    const char *f_mode;
+    char *(*f_rewrite) (const struct formats *, char *, int, int, const char **);
+    int (*f_validate) (char *, int, const struct formats *, const char **);
+    void (*f_send) (const struct formats *, struct tftphdr *, int);
+    void (*f_recv) (const struct formats *, struct tftphdr *, int);
+    int f_convert;
+};
+
 #endif

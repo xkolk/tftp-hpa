@@ -106,10 +106,11 @@ int portrange = 0;
 unsigned int portrange_from, portrange_to;
 int verbosity = 0;
 
-struct formats;
 #ifdef WITH_REGEX
 static struct rule *rewrite_rules = NULL;
 #endif
+
+static FILE *file;
 
 int tftp(struct tftphdr *, int);
 static void nak(int, const char *);
@@ -162,14 +163,14 @@ static void timer(int sig)
 }
 
 #ifdef WITH_REGEX
-static struct rule *read_remap_rules(const char *file)
+static struct rule *read_remap_rules(const char *rulefile)
 {
     FILE *f;
     struct rule *rulep;
 
-    f = fopen(file, "rt");
+    f = fopen(rulefile, "rt");
     if (!f) {
-        syslog(LOG_ERR, "Cannot open map file: %s: %m", file);
+        syslog(LOG_ERR, "Cannot open map file: %s: %m", rulefile);
         exit(EX_NOINPUT);
     }
     rulep = parserulefile(f);
@@ -1057,19 +1058,12 @@ int main(int argc, char **argv)
     exit(0);
 }
 
-static char *rewrite_access(char *, int, int, const char **);
+static char *rewrite_access(const struct formats *,
+			    char *, int, int, const char **);
 static int validate_access(char *, int, const struct formats *, const char **);
 static void tftp_sendfile(const struct formats *, struct tftphdr *, int);
 static void tftp_recvfile(const struct formats *, struct tftphdr *, int);
 
-struct formats {
-    const char *f_mode;
-    char *(*f_rewrite) (char *, int, int, const char **);
-    int (*f_validate) (char *, int, const struct formats *, const char **);
-    void (*f_send) (const struct formats *, struct tftphdr *, int);
-    void (*f_recv) (const struct formats *, struct tftphdr *, int);
-    int f_convert;
-};
 static const struct formats formats[] = {
     {
     "netascii", rewrite_access, validate_access, tftp_sendfile,
@@ -1126,8 +1120,9 @@ int tftp(struct tftphdr *tp, int size)
                 nak(EBADOP, "Unknown mode");
                 exit(0);
             }
+	    file = NULL;
             if (!(filename = (*pf->f_rewrite)
-		  (origfilename, tp_opcode, from.sa.sa_family, &errmsgptr))) {
+		  (pf, origfilename, tp_opcode, from.sa.sa_family, &errmsgptr))) {
                 nak(EACCESS, errmsgptr);        /* File denied by mapping rule */
                 exit(0);
             }
@@ -1150,12 +1145,18 @@ int tftp(struct tftphdr *tp, int size)
                            tmp_p, origfilename,
                            filename);
             }
-            ecode =
-                (*pf->f_validate) (filename, tp_opcode, pf, &errmsgptr);
-            if (ecode) {
-                nak(ecode, errmsgptr);
-                exit(0);
-            }
+	    /*
+	     * If "file" is already set, then a file was already validated
+	     * and opened during remap processing.
+	     */
+	    if (!file) {
+		ecode =
+		    (*pf->f_validate) (filename, tp_opcode, pf, &errmsgptr);
+		if (ecode) {
+		    nak(ecode, errmsgptr);
+		    exit(0);
+		}
+	    }
             opt = ++cp;
         } else if (argn & 1) {
             val = ++cp;
@@ -1411,12 +1412,12 @@ static int rewrite_macros(char macro, char *output)
 /*
  * Modify the filename, if applicable.  If it returns NULL, deny the access.
  */
-static char *rewrite_access(char *filename, int mode, int af,
-			     const char **msg)
+static char *rewrite_access(const struct formats *pf, char *filename,
+			    int mode, int af, const char **msg)
 {
     if (rewrite_rules) {
         char *newname =
-            rewrite_string(filename, rewrite_rules,
+            rewrite_string(pf, filename, rewrite_rules,
 			   mode != RRQ ? 'P' : 'G', af,
                            rewrite_macros, msg);
         filename = newname;
@@ -1425,8 +1426,10 @@ static char *rewrite_access(char *filename, int mode, int af,
 }
 
 #else
-static char *rewrite_access(char *filename, int mode, int af, const char **msg)
+static char *rewrite_access(const struct formats *pf, char *filename,
+			    int mode, int af, const char **msg)
 {
+    (void)pf;
     (void)mode;                 /* Avoid warning */
     (void)msg;
     (void)af;
@@ -1434,7 +1437,6 @@ static char *rewrite_access(char *filename, int mode, int af, const char **msg)
 }
 #endif
 
-static FILE *file;
 /*
  * Validate file access.  Since we
  * have no uid or gid, for now require

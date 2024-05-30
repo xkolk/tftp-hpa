@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------- *
  *
- *   Copyright 2001-2014 H. Peter Anvin - All Rights Reserved
+ *   Copyright 2001-2024 H. Peter Anvin - All Rights Reserved
  *
  *   This program is free software available under the same license
  *   as the "OpenBSD" operating system, distributed at
@@ -33,6 +33,8 @@
 #define RULE_INVERSE	0x20    /* Execute if regex *doesn't* match */
 #define RULE_IPV4	0x40	/* IPv4 only */
 #define RULE_IPV6	0x80	/* IPv6 only */
+
+#define RULE_HASFILE	0x100	/* Valid if rule results in a valid filename */
 
 struct rule {
     struct rule *next;
@@ -213,6 +215,9 @@ static int parseline(char *line, struct rule *r, int lineno)
         case 'e':
             r->rule_flags |= RULE_EXIT;
             break;
+	case 'E':
+	    r->rule_flags |= RULE_HASFILE;
+	    break;
         case 's':
             r->rule_flags |= RULE_RESTART;
             break;
@@ -244,15 +249,21 @@ static int parseline(char *line, struct rule *r, int lineno)
         }
     }
 
-    /* RULE_GLOBAL only applies when RULE_REWRITE specified */
-    if (!(r->rule_flags & RULE_REWRITE))
-        r->rule_flags &= ~RULE_GLOBAL;
-
-    if ((r->rule_flags & (RULE_INVERSE | RULE_REWRITE)) ==
-        (RULE_INVERSE | RULE_REWRITE)) {
-        syslog(LOG_ERR, "r rules cannot be inverted, line %d: %s\n",
-               lineno, line);
-        return -1;              /* Error */
+    if (r->rule_flags & RULE_REWRITE) {
+	    if (r->rule_flags & RULE_INVERSE) {
+		syslog(LOG_ERR, "r rules cannot be inverted, line %d: %s\n",
+		       lineno, line);
+		return -1;              /* Error */
+	    }
+	    if ((r->rule_flags & (RULE_GLOBAL|RULE_HASFILE))
+		== (RULE_GLOBAL|RULE_HASFILE)) {
+		syslog(LOG_ERR, "E rules cannot be combined with g, line %d: %s\n",
+		       lineno, line);
+		return -1;              /* Error */
+	    }
+    } else {
+	/* RULE_GLOBAL is meaningless without RULE_REWRITE */
+	r->rule_flags &= ~RULE_GLOBAL;
     }
 
     /* Read and compile the regex */
@@ -333,12 +344,14 @@ void freerules(struct rule *r)
 }
 
 /* Execute a rule set on a string; returns a malloc'd new string. */
-char *rewrite_string(const char *input, const struct rule *rules,
+char *rewrite_string(const struct formats *pf,
+		     const char *input, const struct rule *rules,
                      char mode, int af, match_pattern_callback macrosub,
                      const char **errmsg)
 {
     char *current = tfstrdup(input);
     char *newstr;
+    const char *accerr;
     const struct rule *ruleptr = rules;
     regmatch_t pmatch[10];
     int len;
@@ -410,13 +423,34 @@ char *rewrite_string(const char *input, const struct rule *rules,
                     newstr = tfmalloc(len + 1);
                     genmatchstring(newstr, ruleptr->pattern, current,
                                    pmatch, macrosub);
-                    free(current);
-                    current = newstr;
-                    if (verbosity >= 3) {
-                        syslog(LOG_INFO, "remap: rule %d: rewrite: %s",
-                               ruleptr->nrule, current);
-                    }
-                }
+		    if ((ruleptr->rule_flags & RULE_HASFILE) &&
+			pf->f_validate(newstr, mode == 'G' ? RRQ : WRQ,
+				       pf, &accerr)) {
+			    if (verbosity >= 3) {
+				syslog(LOG_INFO, "remap: rule %d: ignored rewrite (%s): %s",
+				       ruleptr->nrule, accerr, newstr);
+			    }
+			    free(newstr);
+			    was_match = 0;
+			    break;
+			}
+		    free(current);
+		    current = newstr;
+		    if (verbosity >= 3) {
+			syslog(LOG_INFO, "remap: rule %d: rewrite: %s",
+			       ruleptr->nrule, current);
+		    }
+                } else if (ruleptr->rule_flags & RULE_HASFILE) {
+		    if (pf->f_validate(current, mode == 'G' ? RRQ : WRQ,
+				       pf, &accerr)) {
+			if (verbosity >= 3) {
+			    syslog(LOG_INFO, "remap: rule %d: not exiting (%s)\n",
+				   ruleptr->nrule, accerr);
+			}
+			was_match = 0;
+			break;
+		    }
+		}
             } else {
                 break;          /* No match, terminate unconditionally */
             }
@@ -426,7 +460,7 @@ char *rewrite_string(const char *input, const struct rule *rules,
         if (was_match) {
             was_match = 0;
 
-            if (ruleptr->rule_flags & RULE_EXIT) {
+            if (ruleptr->rule_flags & (RULE_EXIT|RULE_HASFILE)) {
                 if (verbosity >= 3) {
                     syslog(LOG_INFO, "remap: rule %d: exit",
                            ruleptr->nrule);

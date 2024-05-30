@@ -281,6 +281,15 @@ case-insensitively.  By default it is case sensitive.
 .B e
 If this rule matches, end rule processing after executing the rule.
 .TP
+.B E
+If this rule matches,
+\fIand the result matches a filename that can be transferred\fP,
+end rule processing after executing the rule. If this is combined with
+.BR r ,
+then if the substitution does \fInot\fP result in a valid filename,
+the substitution is undone. This cannot be combined with
+.BR g .
+.TP
 .B s
 If this rule matches, start rule processing over from the very first
 rule after executing this rule.
@@ -307,10 +316,10 @@ Inverse the sense of this rule, i.e. execute the
 only if the
 .I regex
 .I doesn't
-match.  Cannot used together with 
+match.  Cannot used together with
 .BR r .
 .PP
-The following escape sequences are recognized as part of the
+The following escape sequences are recognized as part of a
 .IR "replacement pattern" :
 .TP
 \fB\\0\fP
