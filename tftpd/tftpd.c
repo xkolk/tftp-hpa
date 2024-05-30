@@ -1660,16 +1660,20 @@ static void tftp_sendfile(const struct formats *pf, struct tftphdr *oap, int oac
 /*
  * Receive a file.
  */
-static void tftp_recvfile(const struct formats *pf, struct tftphdr *oap, int oacklen)
+static void tftp_recvfile(const struct formats *pf,
+			  struct tftphdr *oack, int oacklen)
 {
     struct tftphdr *dp;
     int n, size;
     /* These are "static" to avoid longjmp funnies */
+    static struct tftphdr *oap;
     static struct tftphdr *ap;  /* ack buffer */
     static u_short block = 0;
     static int acksize;
     u_short dp_opcode, dp_block;
     unsigned long r_timeout;
+
+    oap = oack;
 
     dp = w_init();
     do {
