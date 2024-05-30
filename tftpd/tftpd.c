@@ -980,22 +980,19 @@ int main(int argc, char **argv)
        /etc/group still need to be accessible at this point.
        If we get EPERM, this is already a restricted process, e.g.
        using user namespaces on Linux. */
-    setrv = -1;
     die = 0;
+#ifdef HAVE_SETGROUPS
+    setrv = setgroups(0, NULL);
+    if (setrv && errno != EPERM) {
+	syslog(LOG_ERR, "cannot clear group list");
+	die = EX_OSERR;
+    }
+#endif
 #ifdef HAVE_INITGROUPS
     setrv = initgroups(user, pw->pw_gid);
     if (setrv && errno != EPERM) {
         syslog(LOG_ERR, "cannot set groups for user %s", user);
 	die = EX_OSERR;
-    }
-#endif
-#ifdef HAVE_SETGROUPS
-    if (setrv) {
-	setrv = setgroups(0, NULL);
-	if (setrv && errno != EPERM) {
-	    syslog(LOG_ERR, "cannot clear group list");
-	    die = EX_OSERR;
-	}
     }
 #endif
     if (die)
