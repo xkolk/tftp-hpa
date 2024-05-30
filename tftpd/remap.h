@@ -37,7 +37,7 @@ void freerules(struct rule *);
 /* Execute a rule set on a string; returns a malloc'd new string. */
 struct formats;
 char *rewrite_string(const struct formats *, const char *,
-		     const struct rule *, char, int,
+		     const struct rule *, int, int,
                      match_pattern_callback, const char **);
 
 #endif                          /* WITH_REGEX */

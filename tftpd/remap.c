@@ -35,12 +35,13 @@
 #define RULE_IPV6	0x80	/* IPv6 only */
 
 #define RULE_HASFILE	0x100	/* Valid if rule results in a valid filename */
+#define RULE_RRQ	0x200	/* Get (read) only */
+#define RULE_WRQ	0x400	/* Put (write) only */
 
 struct rule {
     struct rule *next;
     int nrule;
-    int rule_flags;
-    char rule_mode;
+    unsigned int rule_flags;
     regex_t rx;
     const char *pattern;
 };
@@ -164,7 +165,7 @@ static int readescstring(char *buf, char **str)
     int wasbs = 0, len = 0;
 
     while (*p && isspace(*p))
-        p++;
+       p++;
 
     if (!*p) {
         *buf = '\0';
@@ -237,9 +238,11 @@ static int parseline(char *line, struct rule *r, int lineno)
 	    r->rule_flags |= RULE_IPV6;
 	    break;
 	case 'G':
+	    r->rule_flags |= RULE_RRQ;
+	    break;
 	case 'P':
-            r->rule_mode = *p;
-            break;
+	    r->rule_flags |= RULE_WRQ;
+	    break;
         default:
             syslog(LOG_ERR,
                    "Remap command \"%s\" on line %d contains invalid char \"%c\"",
@@ -346,7 +349,7 @@ void freerules(struct rule *r)
 /* Execute a rule set on a string; returns a malloc'd new string. */
 char *rewrite_string(const struct formats *pf,
 		     const char *input, const struct rule *rules,
-                     char mode, int af, match_pattern_callback macrosub,
+                     int mode, int af, match_pattern_callback macrosub,
                      const char **errmsg)
 {
     char *current = tfstrdup(input);
@@ -357,6 +360,7 @@ char *rewrite_string(const struct formats *pf,
     int len;
     int was_match = 0;
     int deadman = DEADMAN_MAX_STEPS;
+    unsigned int bad_flags;
 
     /* Default error */
     *errmsg = "Remap table failure";
@@ -365,15 +369,15 @@ char *rewrite_string(const struct formats *pf,
         syslog(LOG_INFO, "remap: input: %s", current);
     }
 
+    bad_flags = 0;
+    if (mode != RRQ)    bad_flags |= RULE_RRQ;
+    if (mode != WRQ)    bad_flags |= RULE_WRQ;
+    if (af != AF_INET)  bad_flags |= RULE_IPV4;
+    if (af != AF_INET6) bad_flags |= RULE_IPV6;
+
     for (ruleptr = rules; ruleptr; ruleptr = ruleptr->next) {
-	if (ruleptr->rule_mode && ruleptr->rule_mode != mode)
-            continue;           /* Rule not applicable, try next */
-
-	if ((ruleptr->rule_flags & RULE_IPV4) && (af != AF_INET))
-            continue;           /* Rule not applicable, try next */
-
-	if ((ruleptr->rule_flags & RULE_IPV6) && (af != AF_INET6))
-            continue;           /* Rule not applicable, try next */
+	if (ruleptr->rule_flags & bad_flags)
+	    continue;		/* This rule is excluded by flags */
 
         if (!deadman--) {
             syslog(LOG_WARNING,
@@ -424,8 +428,7 @@ char *rewrite_string(const struct formats *pf,
                     genmatchstring(newstr, ruleptr->pattern, current,
                                    pmatch, macrosub);
 		    if ((ruleptr->rule_flags & RULE_HASFILE) &&
-			pf->f_validate(newstr, mode == 'G' ? RRQ : WRQ,
-				       pf, &accerr)) {
+			pf->f_validate(newstr, mode, pf, &accerr)) {
 			    if (verbosity >= 3) {
 				syslog(LOG_INFO, "remap: rule %d: ignored rewrite (%s): %s",
 				       ruleptr->nrule, accerr, newstr);
@@ -441,8 +444,7 @@ char *rewrite_string(const struct formats *pf,
 			       ruleptr->nrule, current);
 		    }
                 } else if (ruleptr->rule_flags & RULE_HASFILE) {
-		    if (pf->f_validate(current, mode == 'G' ? RRQ : WRQ,
-				       pf, &accerr)) {
+		    if (pf->f_validate(current, mode, pf, &accerr)) {
 			if (verbosity >= 3) {
 			    syslog(LOG_INFO, "remap: rule %d: not exiting (%s)\n",
 				   ruleptr->nrule, accerr);

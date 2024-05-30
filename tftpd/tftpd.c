@@ -1417,8 +1417,7 @@ static char *rewrite_access(const struct formats *pf, char *filename,
 {
     if (rewrite_rules) {
         char *newname =
-            rewrite_string(pf, filename, rewrite_rules,
-			   mode != RRQ ? 'P' : 'G', af,
+            rewrite_string(pf, filename, rewrite_rules, mode, af,
                            rewrite_macros, msg);
         filename = newname;
     }
