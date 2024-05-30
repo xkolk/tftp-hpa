@@ -1011,16 +1011,20 @@ int main(int argc, char **argv)
 #endif
     }
 
-#ifdef HAVE_SETREGID
+#ifdef HAVE_SETRESGID
+    setrv = setresgid(pw->pw_gid, pw->pw_gid, pw->pw_gid);
+#elif defined(HAVE_SETREGID)
     setrv = setregid(pw->pw_gid, pw->pw_gid);
 #else
     setrv = setegid(pw->pw_gid) || setgid(pw->pw_gid);
 #endif
     if (setrv && errno == EPERM) {
-	setrv = 0;		/* Already restricted */
+	setrv = 0;		/* Assume already restricted by system policy */
     }
 
-#ifdef HAVE_SETREUID
+#ifdef HAVE_SETRESUID
+    setrv = setrv || setresuid(pw->pw_uid, pw->pw_uid, pw->pw_uid);
+#elif defined(HAVE_SETREUID)
     setrv = setrv || setreuid(pw->pw_uid, pw->pw_uid);
 #else
     /* Important: setuid() must come first */
@@ -1028,7 +1032,7 @@ int main(int argc, char **argv)
         (geteuid() != pw->pw_uid && seteuid(pw->pw_uid));
 #endif
     if (setrv && errno == EPERM) {
-	setrv = 0;		/* Already restricted */
+	setrv = 0;		/* Assume already restricted by system policy */
     }
 
     if (setrv) {
