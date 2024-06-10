@@ -282,10 +282,7 @@ char *xstrdup(const char *);
 #ifndef HAVE_SIGHANDLER_T
 typedef void (*sighandler_t)(int);
 #endif
-#ifndef SIG_ERR
-#define SIG_ERR NULL
-#endif
-sighandler_t tftp_signal(int, sighandler_t);
+int tftp_signal(int, sighandler_t, int);
 
 #ifndef HAVE_DUP2
 int dup2(int, int);

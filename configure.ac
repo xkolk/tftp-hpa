@@ -74,8 +74,11 @@ dnl but POSIX requires <sys/socket.h> for socklen_t to be defined.
 dnl
 AC_CHECK_TYPES(socklen_t,,,
 [AC_INCLUDES_DEFAULT
-#if HAVE_SYS_TYPES_H
+#ifdef HAVE_SYS_TYPES_H
 # include <sys/types.h>
+#endif
+#ifdef HAVE_SYS_SOCKET_H
+# include <sys/socket.h>
 #endif
 ])
 
@@ -85,14 +88,12 @@ AC_CHECK_FUNCS(fcntl)
 AC_CHECK_FUNCS(setsid)
 AC_CHECK_FUNCS(recvmsg)
 AC_CHECK_FUNCS(ftruncate)
-AC_CHECK_FUNCS(setreuid)
 AC_CHECK_FUNCS(setresuid)
-AC_CHECK_FUNCS(setregid)
+AC_CHECK_FUNCS(setreuid)
 AC_CHECK_FUNCS(setresgid)
+AC_CHECK_FUNCS(setregid)
 AC_CHECK_FUNCS(initgroups)
 AC_CHECK_FUNCS(setgroups)
-AC_CHECK_FUNCS(sigaction)
-AC_CHECK_FUNCS(bsd_signal)
 AC_CHECK_TYPES(sighandler_t)
 
 dnl Solaris 8 has [u]intmax_t but not strtoumax().  How utterly braindamaged.

@@ -19,19 +19,11 @@
 #include "tftpd.h"
 
 /*
- * Set the signal handler and flags.  Basically a user-friendly
- * wrapper around sigaction().
+ * Set the signal handler and flags, and error out on failure.
  */
-void set_signal(int signum, void (*handler) (int), int flags)
+void set_signal(int signum, sighandler_t handler, int flags)
 {
-    struct sigaction sa;
-
-    memset(&sa, 0, sizeof sa);
-    sa.sa_handler = handler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = flags;
-
-    if (sigaction(signum, &sa, NULL)) {
+    if (tftp_signal(signum, handler, flags)) {
         syslog(LOG_ERR, "sigaction: %m");
         exit(EX_OSERR);
     }

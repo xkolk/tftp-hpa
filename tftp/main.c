@@ -305,7 +305,7 @@ int main(int argc, char *argv[])
         sp->s_proto = (char *)"udp";
     }
 
-    tftp_signal(SIGINT, intr);
+    tftp_signal(SIGINT, intr, 0);
 
     if (peerargc) {
         /* Set peer */
@@ -768,8 +768,8 @@ void intr(int sig)
 {
     (void)sig;                  /* Quiet unused warning */
 
-    tftp_signal(SIGALRM, SIG_IGN);
     alarm(0);
+    tftp_signal(SIGALRM, SIG_DFL, 0);
     siglongjmp(toplevel, -1);
 }
 
