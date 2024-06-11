@@ -26,10 +26,12 @@
 
 #if defined(HAVE_RECVMSG) && defined(HAVE_MSGHDR_MSG_CONTROL)
 
-#include <sys/uio.h>
+#ifdef HAVE_SYS_UIO_H
+# include <sys/uio.h>
+#endif
 
 #ifdef IP_PKTINFO
-# ifndef HAVE_STRUCT_IN_PKTINFO
+# ifndef HAVE_STRUCT_IN_PKTINFO_IPI_ADDR
 #  ifdef __linux__
 /* Assume this version of glibc simply lacks the definition */
 struct in_pktinfo {
