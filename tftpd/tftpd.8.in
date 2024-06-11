@@ -1,5 +1,5 @@
 .\" -*- nroff -*- --------------------------------------------------------- *
-.\"  
+.\"
 .\" Copyright (c) 1990, 1993, 1994
 .\"     The Regents of the University of California.  All rights reserved.
 .\"
@@ -270,7 +270,18 @@ by the
 The replacement pattern may contain escape sequences; see below.
 .TP
 .B g
-Repeat this rule until it no longer matches.  This is always used with
+Repeat this rule until it no longer matches. This is always used with
+.BR r .
+.TP
+.B gg
+Repeat this rule until it no longer matches, but only on the portion
+of the string that has not yet been matched, similar to how the
+.B s
+command with the
+.B g
+option works in
+.BR sed (1).
+This is always used with
 .BR r .
 .TP
 .B i
@@ -288,7 +299,9 @@ end rule processing after executing the rule. If this is combined with
 .BR r ,
 then if the substitution does \fInot\fP result in a valid filename,
 the substitution is undone. This cannot be combined with
-.BR g .
+.BR g ,
+but \fIcan\fP be combined with
+.BR gg .
 .TP
 .B s
 If this rule matches, start rule processing over from the very first
@@ -400,7 +413,7 @@ Access to files can, and should, be restricted by invoking
 .B tftpd
 with a list of directories by including pathnames as server program
 arguments on the command line.  In this case access is restricted to
-files whole names are prefixed by one of the given directories.  If
+files whose names are prefixed by one of the given directories.  If
 possible, it is recommended that the
 .B \-\-secure
 flag is used to set up a chroot() environment for the server to run in
