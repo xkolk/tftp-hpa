@@ -185,7 +185,7 @@ static int genmatchstring(char **string, const char *pattern,
 
     len = do_genmatchstring(NULL, pattern, ibuf, pmatch,
                             macrosub, start, NULL);
-    *string = buf = tf_malloc(len + 1);
+    *string = buf = tfmalloc(len + 1);
     return do_genmatchstring(buf, pattern, ibuf, pmatch,
                              macrosub, start, nextp);
 }
@@ -397,7 +397,7 @@ char *rewrite_string(const struct formats *pf,
     const struct rule *ruleptr = rules;
     regmatch_t pmatch[10];
     int i;
-    int len, newlen;
+    int len;
     int was_match = 0;
     int deadman = deadman_max_steps;
     int matchsense;
@@ -429,67 +429,71 @@ char *rewrite_string(const struct formats *pf,
         for (i = 0; i < 10; i++)
             pmatch[i].rm_so = pmatch[i].rm_eo = -1;
 
+        was_match = 0;
+
         do {
             if (!deadman--)
                 goto dead;
 
             if (regexec(&ruleptr->rx, current, pmatches, pmatch, 0)
-                == matchsense) {
-                /* Match on this rule */
-                was_match = 1;
+                != matchsense)
+                break;          /* No match, break out of do loop */
 
-                if (ruleptr->rule_flags & RULE_ABORT) {
-                    if (verbosity >= 3) {
-                        syslog(LOG_INFO, "remap: rule %d: abort: %s",
-                               ruleptr->nrule, current);
-                    }
-                    if (ruleptr->pattern[0]) {
-                        /* Custom error message */
-                        genmatchstring(&newstr, ruleptr->pattern, current,
-                                       pmatch, macrosub, 0, NULL);
-                        *errmsg = newstr;
-                    } else {
-                        *errmsg = NULL;
-                    }
-                    free(current);
-                    return (NULL);
+            /* Match on this rule */
+            was_match = 1;
+
+            if (ruleptr->rule_flags & RULE_ABORT) {
+                if (verbosity >= 3) {
+                    syslog(LOG_INFO, "remap: rule %d: abort: %s",
+                           ruleptr->nrule, current);
                 }
+                if (ruleptr->pattern[0]) {
+                    /* Custom error message */
+                    genmatchstring(&newstr, ruleptr->pattern, current,
+                                   pmatch, macrosub, 0, NULL);
+                    *errmsg = newstr;
+                } else {
+                    *errmsg = NULL;
+                }
+                free(current);
+                return (NULL);
+            }
 
-                if (ruleptr->rule_flags & RULE_REWRITE) {
-                    len = genmatchstring(&newstr, ruleptr->pattern, current,
-                                         pmatch, macrosub, 0, &ggoffset);
+            if (ruleptr->rule_flags & RULE_REWRITE) {
+                len = genmatchstring(&newstr, ruleptr->pattern, current,
+                                     pmatch, macrosub, 0, &ggoffset);
 
-                    if (ruleptr->rule_flags & RULE_SEDG) {
-                        /* sed-style partial-matching global */
-                        while (ggoffset < len &&
-                               regexec(ruleptr->rx, newstr + ggoffset,
-                                       pmatches, pmatch,
-                                       ggoffset ? REG_NOTBOL : 0)
-                               == matchsense) {
-                            if (!deadman--) {
-                                free(current);
-                                current = newstr;
-                                goto dead;
-                            }
-                            len = genmatchstring(&newerstr, ruleptr->pattern,
-                                                 newstr, pmatch, macrosub,
-                                                 ggoffset, &ggoffset);
-                            free(newstr);
-                            newstr = newerstr;
+                if (ruleptr->rule_flags & RULE_SEDG) {
+                    /* sed-style partial-matching global */
+                    while (ggoffset < len &&
+                           regexec(&ruleptr->rx, newstr + ggoffset,
+                                   pmatches, pmatch,
+                                   ggoffset ? REG_NOTBOL : 0)
+                           == matchsense) {
+                        if (!deadman--) {
+                            free(current);
+                            current = newstr;
+                            goto dead;
                         }
-                    }
-
-                    if ((ruleptr->rule_flags & RULE_HASFILE) &&
-                        pf->f_validate(newstr, mode, pf, &accerr)) {
-                        if (verbosity >= 3) {
-                            syslog(LOG_INFO, "remap: rule %d: ignored rewrite (%s): %s",
-                                   ruleptr->nrule, accerr, newstr);
-                        }
+                        len = genmatchstring(&newerstr, ruleptr->pattern,
+                                             newstr, pmatch, macrosub,
+                                             ggoffset, &ggoffset);
                         free(newstr);
-                        was_match = 0;
-                        break;
+                        newstr = newerstr;
                     }
                 }
+
+                if ((ruleptr->rule_flags & RULE_HASFILE) &&
+                    pf->f_validate(newstr, mode, pf, &accerr)) {
+                    if (verbosity >= 3) {
+                        syslog(LOG_INFO, "remap: rule %d: ignored rewrite (%s): %s",
+                               ruleptr->nrule, accerr, newstr);
+                    }
+                    free(newstr);
+                    was_match = 0;
+                    break;
+                }
+
                 free(current);
                 current = newstr;
                 if (verbosity >= 3) {
@@ -506,14 +510,11 @@ char *rewrite_string(const struct formats *pf,
                     break;
                 }
             }
-        } else {
-            break;          /* No match, terminate unconditionally */
-        }
-        /* If the rule is (old-style) global, keep going until no match */
-    } while ((ruleptr->rule_flags & (RULE_GLOBAL|RULE_SEDG)) == RULE_GLOBAL);
+            /* If the rule is (old-style) global, keep going until no match */
+        } while ((ruleptr->rule_flags & (RULE_GLOBAL|RULE_SEDG)) == RULE_GLOBAL);
 
-    if (was_match) {
-        was_match = 0;
+        if (!was_match)
+            continue;           /* Next rule */
 
         if (ruleptr->rule_flags & (RULE_EXIT|RULE_HASFILE)) {
             if (verbosity >= 3) {

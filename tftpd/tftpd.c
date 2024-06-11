@@ -499,7 +499,6 @@ int main(int argc, char **argv)
             break;
         case OPT_MAP_STEPS:
         {
-            char *ep;
             unsigned long steps = strtoul(optarg, &ep, 0);
             if (*optarg && *ep && steps > 0 && steps <= INT_MAX) {
                 deadman_max_steps = steps;

@@ -181,7 +181,8 @@ PA_ARG_DISABLED([remap],
  [AS_IF([test x"$ac_cv_header_regex_h" = xyes],
   [AC_SEARCH_LIBS(regcomp, [regex rx],
    [AC_DEFINE([WITH_REGEX], 1,
-	     [Define if we are compiling with regex filename remapping.])])])])
+	     [Define if we are compiling with regex filename remapping.])
+    TFTPDOBJS="remap.\$(O) $TFTPOBJS"])])])
 
 TFTPD_LIBS="$LIBS $XTRALIBS"
 LIBS="$common_libs"
