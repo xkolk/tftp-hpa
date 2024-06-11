@@ -175,6 +175,14 @@ PA_ARG_DISABLED([tcpwrappers],
 	PA_HAVE_TCPWRAPPERS
   ])
 
+AC_CHECK_HEADERS_ONCE([regex.h])
+PA_ARG_DISABLED([remap],
+ [disable regex-based filename remapping], [],
+ [AS_IF([test x"$ac_cv_header_regex_h" = xyes],
+  [AC_SEARCH_LIBS(regcomp, [regex rx],
+   [AC_DEFINE([WITH_REGEX], 1,
+	     [Define if we are compiling with regex filename remapping.])])])])
+
 TFTPD_LIBS="$LIBS $XTRALIBS"
 LIBS="$common_libs"
 
@@ -188,7 +196,7 @@ AH_TEMPLATE([WITH_READLINE],
 PA_ARG_DISABLED([readline],
  [disable the use of readline command-line editing], [],
  [
-  AC_CHECK_HEADER(readline/readline.h,
+  AC_CHECK_HEADER([readline/readline.h],
 	[
 		dnl readline may need libtermcap or somesuch...
 		AC_SEARCH_LIBS(tputs, [termcap terminfo])
@@ -197,7 +205,7 @@ PA_ARG_DISABLED([readline],
 		[AC_DEFINE(WITH_READLINE)])
 		AC_CHECK_HEADERS(readline/history.h)
 	],
-	[AC_CHECK_HEADER(editline/readline.h,
+	[AC_CHECK_HEADER([editline/readline.h],
 	[
 		dnl editline may need libtermcap or somesuch...
 		AC_SEARCH_LIBS(tputs, [termcap terminfo])

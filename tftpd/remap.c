@@ -185,7 +185,7 @@ static int genmatchstring(char **string, const char *pattern,
 
     len = do_genmatchstring(NULL, pattern, ibuf, pmatch,
                             macrosub, start, NULL);
-    buf = tf_malloc(len + 1);
+    *string = buf = tf_malloc(len + 1);
     return do_genmatchstring(buf, pattern, ibuf, pmatch,
                              macrosub, start, nextp);
 }
