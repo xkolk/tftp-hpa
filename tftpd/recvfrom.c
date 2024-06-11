@@ -289,7 +289,7 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
     myaddr->sa.sa_family = from->sa.sa_family;
     sa_set_port(myaddr, htons(IPPORT_TFTP));
 
-    return recvfrom(s, buf, len, flags, from, &fromlen);
+    return recvfrom(s, buf, len, flags, &from->sa, &fromlen);
 }
 
 #endif

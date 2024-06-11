@@ -185,7 +185,8 @@ static struct rule *read_remap_rules(const char *rulefile)
  */
 static int lock_file(int fd, int lock_write)
 {
-#if defined(HAVE_FCNTL) && defined(HAVE_F_SETLK_DEFINITION)
+    (void)lock_write;
+#if defined(HAVE_FCNTL) && HAVE_DECL_F_SETLK
   struct flock fl;
 
   fl.l_type   = lock_write ? F_WRLCK : F_RDLCK;
@@ -193,7 +194,7 @@ static int lock_file(int fd, int lock_write)
   fl.l_start  = 0;
   fl.l_len    = 0;		/* Whole file */
   return fcntl(fd, F_SETLK, &fl);
-#elif defined(HAVE_LOCK_SH_DEFINITION)
+#elif defined(HAVE_FLOCK) && HAVE_DECL_LOCK_SH && HAVE_DECL_LOCK_EX
   return flock(fd, lock_write ? LOCK_EX|LOCK_NB : LOCK_SH|LOCK_NB);
 #else
   return 0;			/* Hope & pray... */
@@ -325,7 +326,7 @@ static int split_port(char **ap, char **pp)
 enum long_only_options {
     OPT_VERBOSITY	= 256,
 };
-    
+
 static struct option long_options[] = {
     { "ipv4",        0, NULL, '4' },
     { "ipv6",        0, NULL, '6' },
@@ -1246,7 +1247,7 @@ static int set_blksize2(uintmax_t *vp)
 static int set_rollover(uintmax_t *vp)
 {
     uintmax_t ro = *vp;
-    
+
     if (ro > 65535)
 	return 0;
 
@@ -1345,7 +1346,7 @@ static void do_opt(const char *opt, const char *val, char **ap)
                     nak(EOPTNEG, "Insufficient space for options");
                     exit(0);
                 }
-		
+
 		memcpy(p, opt, optlen+1);
 		p += optlen+1;
 		memcpy(p, retbuf, retlen+1);

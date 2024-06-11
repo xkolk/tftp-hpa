@@ -1,7 +1,7 @@
 SRCROOT = ..
 VERSION = $(shell cat ../version)
 
--include ../MCONFIG
+-include ../config/MCONFIG
 include ../MRULES
 
 OBJS = tftp.$(O) main.$(O)

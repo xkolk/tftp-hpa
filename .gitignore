@@ -1,6 +1,9 @@
-/MCONFIG
-/aconfig.h
-/aconfig.h.in
+/config/MCONFIG
+/config/config.h
+/config/config.h.in
+/autoconf/aclocal.m4
+/autoconf/clean.sh
+/autoconf/helpers/
 /autom4te.cache
 /config.log
 /config.status
@@ -12,5 +15,7 @@
 *.8
 *.a
 *.o
+*.i
+*.s
 *~
 \#*

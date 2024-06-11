@@ -4,7 +4,7 @@
 
 SRCROOT = ..
 
--include ../MCONFIG
+-include ../config/MCONFIG
 include ../MRULES
 
 ifeq ($(LIBOBJS),)
