@@ -39,6 +39,8 @@
 #define RULE_WRQ	0x400	/* Put (write) only */
 #define RULE_SEDG	0x800   /* sed-style global */
 
+int deadman_max_steps = DEADMAN_MAX_STEPS;
+
 struct rule {
     struct rule *next;
     int nrule;
@@ -397,7 +399,7 @@ char *rewrite_string(const struct formats *pf,
     int i;
     int len, newlen;
     int was_match = 0;
-    int deadman = DEADMAN_MAX_STEPS;
+    int deadman = deadman_max_steps;
     int matchsense;
     int pmatches;
     unsigned int bad_flags;
@@ -534,9 +536,9 @@ char *rewrite_string(const struct formats *pf,
     return current;
 
 dead:                           /* Deadman expired */
-    syslog(LOG_WARNING,
-           "remap: Breaking loop, input = %s, last = %s", input,
-           current);
+    syslog(LOG_ERR,
+           "remap: Breaking loop after %d steps, input = %s, last = %s",
+           deadman_max_steps, input, current);
     free(current);
     return NULL;        /* Did not terminate! */
 }

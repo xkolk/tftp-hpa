@@ -325,6 +325,7 @@ static int split_port(char **ap, char **pp)
 
 enum long_only_options {
     OPT_VERBOSITY	= 256,
+    OPT_MAP_STEPS
 };
 
 static struct option long_options[] = {
@@ -347,6 +348,7 @@ static struct option long_options[] = {
     { "retransmit",  1, NULL, 'T' },
     { "port-range",  1, NULL, 'R' },
     { "map-file",    1, NULL, 'm' },
+    { "map-steps",   1, NULL, OPT_MAP_STEPS },
     { "pidfile",     1, NULL, 'P' },
     { NULL, 0, NULL, 0 }
 };
@@ -495,6 +497,18 @@ int main(int argc, char **argv)
             }
             rewrite_file = optarg;
             break;
+        case OPT_MAP_STEPS:
+        {
+            char *ep;
+            unsigned long steps = strtoul(optarg, &ep, 0);
+            if (*optarg && *ep && steps > 0 && steps <= INT_MAX) {
+                deadman_max_steps = steps;
+            } else {
+                syslog(LOG_ERR, "Bad --map-steps option: %s", optarg);
+                exit(EX_USAGE);
+            }
+            break;
+        }
 #endif
         case 'v':
             verbosity++;
