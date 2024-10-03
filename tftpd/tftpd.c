@@ -78,6 +78,7 @@ static int ai_fam = AF_INET;
 
 const char *tftpd_progname;
 static int peer;
+static int singlesocket = 0;        /* Single socket operation for easy NAT traversal */
 static unsigned long timeout  = TIMEOUT;        /* Current timeout value */
 static unsigned long rexmtval = TIMEOUT;       /* Basic timeout value */
 static unsigned long maxtimeout = TIMEOUT_LIMIT * TIMEOUT;
@@ -916,7 +917,7 @@ int main(int argc, char **argv)
               (myaddr.si.sin_addr.s_addr == INADDR_ANY)) {
                 /* myrecvfrom() didn't capture the source address; but we might
                    have bound to a specific address, if so we should use it */
-                memcpy(SOCKADDR_P(&myaddr), &bindaddr4.sin_addr,
+                memcpy(SOCKADDR_P(&), &bindaddr4.sin_addr,
                        sizeof(bindaddr4.sin_addr));
 #ifdef HAVE_IPV6
             } else if ((from.sa.sa_family == AF_INET6) &&
@@ -978,13 +979,21 @@ int main(int argc, char **argv)
     }
 #endif
 
-    /* Close file descriptors we don't need */
-    close(fd);
+    singlesocket = (portrange_from == portrange_to) &&
+        /* a bit of hack - rely on common sin*_port size and offset for both AF_ */
+        (ntohs(myaddr.si.sin_port) == portrange_from);
 
-    /* Get a socket.  This has to be done before the chroot(), since
-       some systems require access to /dev to create a socket. */
+    if (singlesocket) {
+        peer = fd;
+    } else {
+        /* Close file descriptors we don't need */
+        close(fd);
 
-    peer = socket(myaddr.sa.sa_family, SOCK_DGRAM, 0);
+        /* Get a socket.  This has to be done before the chroot(), since
+           some systems require access to /dev to create a socket. */
+
+        peer = socket(myaddr.sa.sa_family, SOCK_DGRAM, 0);
+    }
     if (peer < 0) {
         syslog(LOG_ERR, "socket: %m");
         exit(EX_IOERR);
@@ -1055,7 +1064,7 @@ int main(int argc, char **argv)
     }
 
     /* Process the request... */
-    if (pick_port_bind(peer, &myaddr, portrange_from, portrange_to) < 0) {
+    if (!singlesocket && pick_port_bind(peer, &myaddr, portrange_from, portrange_to) < 0) {
         syslog(LOG_ERR, "bind: %m");
         exit(EX_IOERR);
     }
