@@ -280,6 +280,12 @@ int pick_port_bind(int sockfd, union sock_addr *myaddr,
 
     do {
         sa_set_port(myaddr, htons(port));
+        if (port_range && port_range_from == port_range_to) {
+            int on = 1;
+            /* single port should be reusable, for easy NAT traversal */
+            if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const void *) &on, sizeof(on))) 
+                return -1;
+        }
         if (bind(sockfd, &myaddr->sa, SOCKLEN(myaddr)) < 0) {
             /* Some versions of Linux return EINVAL instead of EADDRINUSE */
             if (!(port_range && (errno == EINVAL || errno == EADDRINUSE)))
