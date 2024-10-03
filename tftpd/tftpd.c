@@ -917,7 +917,7 @@ int main(int argc, char **argv)
               (myaddr.si.sin_addr.s_addr == INADDR_ANY)) {
                 /* myrecvfrom() didn't capture the source address; but we might
                    have bound to a specific address, if so we should use it */
-                memcpy(SOCKADDR_P(&), &bindaddr4.sin_addr,
+                memcpy(SOCKADDR_P(&myaddr), &bindaddr4.sin_addr,
                        sizeof(bindaddr4.sin_addr));
 #ifdef HAVE_IPV6
             } else if ((from.sa.sa_family == AF_INET6) &&
