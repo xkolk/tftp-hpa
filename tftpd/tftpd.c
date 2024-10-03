@@ -979,9 +979,11 @@ int main(int argc, char **argv)
     }
 #endif
 
-    singlesocket = (portrange_from == portrange_to) &&
-        /* a bit of hack - rely on common sin*_port size and offset for both AF_ */
-        (ntohs(myaddr.si.sin_port) == portrange_from);
+    if (!singlesocket) {
+        singlesocket = (portrange_from == portrange_to) &&
+            /* a bit of hack - rely on common sin*_port size and offset for both AF_ */
+            (ntohs(myaddr.si.sin_port) == portrange_from);
+    }
 
     if (singlesocket) {
         peer = fd;
